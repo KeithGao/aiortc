@@ -1,6 +1,12 @@
 import asyncio
 import os
+import sys
 from struct import unpack
+
+
+def debug(message):
+    sys.stdout.write(message + '\n')
+    sys.stdout.flush()
 
 
 def random16():

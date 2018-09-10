@@ -1,6 +1,7 @@
 import io
 import logging
 import math
+import threading
 from itertools import tee
 from struct import pack, unpack_from
 
@@ -10,6 +11,7 @@ from av.codec.context import CodecContext
 from av.packet import Packet
 
 from ..mediastreams import VideoFrame
+from ..utils import debug
 
 logger = logging.getLogger('codec.h264')
 
@@ -108,6 +110,7 @@ class H264Decoder:
         self.codec = CodecContext.create('h264', 'r')
 
     def decode(self, data):
+        debug('decode %d %d' % (id(self), threading.get_ident()))
         try:
             packet = Packet(data)
             frames = self.codec.decode(packet)
@@ -262,9 +265,13 @@ class H264Encoder:
             }
 
         av_frame = frame_to_avframe(frame)
-        packages = self.stream.encode(av_frame)
-        yield from self._split_bitstream(b''.join(p.to_bytes() for p in packages))
+        try:
+            packages = self.stream.encode(av_frame)
+            yield from self._split_bitstream(b''.join(p.to_bytes() for p in packages))
+        except AVError as e:
+            debug('encode failed %s' % e)
 
     def encode(self, frame, force_keyframe=False):
+        debug('encode %d %d' % (id(self), threading.get_ident()))
         packages = self._encode_frame(frame, force_keyframe)
         return self._packetize(packages)

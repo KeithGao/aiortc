@@ -208,8 +208,7 @@ class RTCRtpSender:
                     break
 
                 # encode frame
-                payloads = await loop.run_in_executor(None, encoder.encode, frame,
-                                                      self.__force_keyframe)
+                payloads = encoder.encode(frame, self.__force_keyframe)
                 if not isinstance(payloads, list):
                     payloads = [payloads]
                 self.__force_keyframe = False

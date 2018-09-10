@@ -10,6 +10,7 @@ from aiortc.mediastreams import (AudioStreamTrack, MediaStreamTrack,
 from aiortc.rtcpeerconnection import find_common_codecs
 from aiortc.rtcrtpparameters import RTCRtcpFeedback, RTCRtpCodecParameters
 from aiortc.sdp import SessionDescription
+from aiortc.utils import debug
 
 from .utils import run
 
@@ -1033,6 +1034,7 @@ class RTCPeerConnectionTest(TestCase):
         self.assertFalse('a=candidate:' in offer.sdp)
         self.assertFalse('a=end-of-candidates' in offer.sdp)
 
+        debug('pc1.setLocalDescription')
         run(pc1.setLocalDescription(offer))
         self.assertEqual(pc1.iceConnectionState, 'new')
         self.assertEqual(pc1.iceGatheringState, 'complete')
@@ -1053,8 +1055,10 @@ class RTCPeerConnectionTest(TestCase):
             type=pc1.localDescription.type)
         self.assertFalse('VP8' in desc1.sdp)
         self.assertTrue('H264' in desc1.sdp)
+        debug(desc1.sdp)
 
         # handle offer
+        debug('pc2.setRemoteDescription')
         run(pc2.setRemoteDescription(desc1))
         self.assertEqual(pc2.remoteDescription, desc1)
         self.assertEqual(len(pc2.getReceivers()), 1)
@@ -1063,6 +1067,7 @@ class RTCPeerConnectionTest(TestCase):
         self.assertEqual(mids(pc2), ['0'])
 
         # create answer
+        debug('pc2.createAnswer')
         pc2.addTrack(VideoStreamTrack())
         answer = run(pc2.createAnswer())
         self.assertEqual(answer.type, 'answer')
@@ -1070,6 +1075,7 @@ class RTCPeerConnectionTest(TestCase):
         self.assertFalse('a=candidate:' in answer.sdp)
         self.assertFalse('a=end-of-candidates' in answer.sdp)
 
+        debug('pc2.setLocalDescription')
         run(pc2.setLocalDescription(answer))
         self.assertEqual(pc2.iceConnectionState, 'checking')
         self.assertEqual(pc2.iceGatheringState, 'complete')
@@ -1081,22 +1087,26 @@ class RTCPeerConnectionTest(TestCase):
         self.assertTrue('a=setup:active' in pc2.localDescription.sdp)
 
         # handle answer
+        debug('pc2.setRemoteDescription')
         run(pc1.setRemoteDescription(pc2.localDescription))
         self.assertEqual(pc1.remoteDescription, pc2.localDescription)
         self.assertEqual(pc1.iceConnectionState, 'checking')
 
         # check outcome
+        debug('sleep')
         run(asyncio.sleep(1))
         self.assertEqual(pc1.iceConnectionState, 'completed')
         self.assertEqual(pc2.iceConnectionState, 'completed')
 
         # close
+        debug('close')
         run(pc1.close())
         run(pc2.close())
         self.assertEqual(pc1.iceConnectionState, 'closed')
         self.assertEqual(pc2.iceConnectionState, 'closed')
 
         # check state changes
+        debug('check')
         self.assertEqual(pc1_states['iceConnectionState'], [
             'new', 'checking', 'completed', 'closed'])
         self.assertEqual(pc1_states['iceGatheringState'], [
